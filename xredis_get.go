@@ -21,9 +21,9 @@ func (c *Client) GetValue(ctx context.Context, key string, value interface{}, op
 	case reflect.Struct:
 		return c.getStructValue(ctx, key, valValue, options)
 	case reflect.Array:
-		return c.getArray2Redis(ctx, key, valValue, options)
+		return c.getArrayValue(ctx, key, valValue, options)
 	case reflect.Slice:
-		return c.getSlice2Redis(ctx, key, valValue, options)
+		return c.getSliceValue(ctx, key, valValue, options)
 	case reflect.Map:
 		val, ok := value.(map[string]string)
 		if ok {
@@ -31,7 +31,7 @@ func (c *Client) GetValue(ctx context.Context, key string, value interface{}, op
 		}
 		return errors.New("value map is not map[string]string")
 	default:
-		return c.getSingle2Redis(ctx, key, valValue, options)
+		return c.getSingleValue(ctx, key, valValue, options)
 	}
 }
 
@@ -46,7 +46,7 @@ func (c *Client) GetSingleValue(ctx context.Context, key string, value interface
 		valValue = valValue.Elem()
 	}
 
-	return c.getSingle2Redis(ctx, key, valValue, options)
+	return c.getSingleValue(ctx, key, valValue, options)
 }
 
 func (c *Client) GetSliceValue(ctx context.Context, key string, value interface{}, opts ...Option) (err error) {
@@ -62,9 +62,9 @@ func (c *Client) GetSliceValue(ctx context.Context, key string, value interface{
 
 	switch valValue.Kind() {
 	case reflect.Array:
-		return c.getArray2Redis(ctx, key, valValue, options)
+		return c.getArrayValue(ctx, key, valValue, options)
 	case reflect.Slice:
-		return c.getSlice2Redis(ctx, key, valValue, options)
+		return c.getSliceValue(ctx, key, valValue, options)
 	default:
 		return errors.New("value is not array or slice")
 	}
@@ -90,16 +90,20 @@ func (c *Client) GetStructValue(ctx context.Context, key string, value interface
 	}
 }
 
-func (c *Client) GetMapValue(ctx context.Context, key string, val map[string]string, opts ...Option) (err error) {
+func (c *Client) GetMapValue(ctx context.Context, key string, value interface{}, opts ...Option) (err error) {
 	options := c.options
 	for _, opt := range opts {
 		opt(&options)
 	}
 
-	return c.getMapValue(ctx, key, val, options)
+	val, ok := value.(map[string]string)
+	if ok {
+		return c.getMapValue(ctx, key, val, options)
+	}
+	return errors.New("value map is not map[string]string")
 }
 
-func (c *Client) getSingle2Redis(ctx context.Context, key string, valValue reflect.Value, options Options) (err error) {
+func (c *Client) getSingleValue(ctx context.Context, key string, valValue reflect.Value, options Options) (err error) {
 	str, err := c.Get(ctx, key).Result()
 	if err != nil {
 		return err
@@ -107,7 +111,7 @@ func (c *Client) getSingle2Redis(ctx context.Context, key string, valValue refle
 	return setValueByString(valValue, str)
 }
 
-func (c *Client) getSlice2Redis(ctx context.Context, key string, valValue reflect.Value, options Options) (err error) {
+func (c *Client) getSliceValue(ctx context.Context, key string, valValue reflect.Value, options Options) (err error) {
 	strings, err := c.LRange(ctx, key, options.Start, options.Stop).Result()
 	if err != nil {
 		return err
@@ -115,7 +119,7 @@ func (c *Client) getSlice2Redis(ctx context.Context, key string, valValue reflec
 	return setSlice(strings, valValue)
 }
 
-func (c *Client) getArray2Redis(ctx context.Context, key string, valValue reflect.Value, options Options) (err error) {
+func (c *Client) getArrayValue(ctx context.Context, key string, valValue reflect.Value, options Options) (err error) {
 	if options.Stop == 0 {
 		options.Stop = int64(valValue.Len() - 1)
 	}
