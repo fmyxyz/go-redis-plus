@@ -68,7 +68,12 @@ func (c *Client) SetSliceValue(ctx context.Context, key string, value interface{
 
 	switch valValue.Kind() {
 	case reflect.Array, reflect.Slice:
-		return c.setListValue(ctx, key, valValue, options)
+		switch options.SliceType {
+		case List:
+			return c.setListValue(ctx, key, valValue, options)
+		default: // Set
+			return c.setSetValue(ctx, key, valValue, options)
+		}
 	default:
 		return errors.New("value is not array or slice")
 	}
@@ -121,7 +126,8 @@ func (c *Client) setSingleValue(ctx context.Context, key string, valValue reflec
 		}
 		return c.Set(ctx, key, bytes, options.Expiration).Err()
 	default:
-		return c.Set(ctx, key, valValue.Interface(), options.Expiration).Err()
+		bytes := toByte(valValue)
+		return c.Set(ctx, key, bytes, options.Expiration).Err()
 	}
 }
 
@@ -142,11 +148,29 @@ func (c *Client) setListValue(ctx context.Context, key string, valValue reflect.
 	return nil
 }
 
+func (c *Client) setSetValue(ctx context.Context, key string, valValue reflect.Value, options Options) (err error) {
+	valLen := valValue.Len()
+	vals := make([]interface{}, valLen)
+	for i := 0; i < valLen; i++ {
+		sliceVal := valValue.Index(i)
+		vals[i] = toByte(sliceVal)
+	}
+	err = c.SAdd(ctx, key, vals).Err()
+	if err != nil {
+		return err
+	}
+	if options.Expiration != -1 {
+		return c.Expire(ctx, key, options.Expiration).Err()
+	}
+	return nil
+}
+
 func (c *Client) setStructValue(ctx context.Context, key string, valValue reflect.Value, options Options) (err error) {
 	numField := valValue.NumField()
 	m := make(map[string]interface{}, numField)
 	for i := 0; i < numField; i++ {
-		key := getStructKey(valValue.Type(), i, options.Tag)
+		valType := valValue.Type()
+		key := getStructKey(valType, i, options.Tag)
 		m[key] = toByte(valValue.Field(i))
 	}
 	err = c.HSet(ctx, key, m).Err()
@@ -162,7 +186,7 @@ func (c *Client) setStructValue(ctx context.Context, key string, valValue reflec
 func (c *Client) setMapValue(ctx context.Context, key string, valValue reflect.Value, options Options) (err error) {
 	m := map[string]interface{}{}
 	iter := valValue.MapRange()
-	if iter.Next() {
+	for iter.Next() {
 		k := iter.Key()
 		v := iter.Value()
 		m[toString(k)] = toByte(v)

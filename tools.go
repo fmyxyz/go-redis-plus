@@ -8,8 +8,8 @@ import (
 	"unsafe"
 )
 
-func getStructKey(t reflect.Type, i int, tag string) (key string) {
-	field := t.Field(i)
+func getStructKey(valType reflect.Type, i int, tag string) (key string) {
+	field := valType.Field(i)
 	if tag == "" {
 		return field.Name
 	}
@@ -17,7 +17,7 @@ func getStructKey(t reflect.Type, i int, tag string) (key string) {
 	if tagName == "" || tagName == "-" {
 		return ""
 	}
-	tagName = strings.Split(tag, ",")[0]
+	tagName = strings.Split(tagName, ",")[0]
 	return tagName
 }
 

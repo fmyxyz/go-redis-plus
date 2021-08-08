@@ -29,7 +29,15 @@ type Options struct {
 	Tag         string
 	Expiration  time.Duration
 	Start, Stop int64
+	SliceType
 }
+
+type SliceType uint8
+
+const (
+	List SliceType = iota
+	Set
+)
 
 type Option func(opt *Options)
 
@@ -49,5 +57,17 @@ func Range(start, stop int64) Option {
 	return func(opt *Options) {
 		opt.Start = start
 		opt.Stop = stop
+	}
+}
+
+func RedisTypeList() Option {
+	return func(opt *Options) {
+		opt.SliceType = List
+	}
+}
+
+func RedisTypeSet() Option {
+	return func(opt *Options) {
+		opt.SliceType = Set
 	}
 }
