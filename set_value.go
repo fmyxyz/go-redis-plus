@@ -32,8 +32,7 @@ func setValueByString(value reflect.Value, val string) error {
 	case reflect.Int32:
 		return setIntField(val, 32, value)
 	case reflect.Int64:
-		switch value.Interface().(type) {
-		case time.Duration:
+		if _, ok := value.Interface().(time.Duration); ok {
 			return setTimeDuration(val, value)
 		}
 		return setIntField(val, 64, value)
@@ -56,21 +55,17 @@ func setValueByString(value reflect.Value, val string) error {
 	case reflect.String:
 		value.SetString(val)
 	case reflect.Struct:
-		switch value.Interface().(type) {
-		case time.Time:
+		if _, ok := value.Interface().(time.Time); ok {
 			return setTimeField(val, value)
 		}
 		return json.Unmarshal(stringToBytes(val), value.Addr().Interface())
 	case reflect.Map, reflect.Array:
 		return json.Unmarshal(stringToBytes(val), value.Addr().Interface())
 	case reflect.Slice:
-
-		switch value.Interface().(type) {
-		case []byte:
+		if _, ok := value.Interface().([]byte); ok {
 			return setByteSlice(val, value)
 		}
 		return json.Unmarshal(stringToBytes(val), value.Addr().Interface())
-
 	}
 	return nil
 }
