@@ -2,9 +2,24 @@ package redis
 
 import (
 	"encoding"
+	"reflect"
+	"strings"
 	"time"
 	"unsafe"
 )
+
+func getStructKey(t reflect.Type, i int, tag string) (key string) {
+	field := t.Field(i)
+	if tag == "" {
+		return field.Name
+	}
+	tagName := field.Tag.Get(tag)
+	if tagName == "" || tagName == "-" {
+		return ""
+	}
+	tagName = strings.Split(tag, ",")[0]
+	return tagName
+}
 
 func dotType2Byte(val interface{}) (ok bool, bs []byte) {
 	switch val := val.(type) {
