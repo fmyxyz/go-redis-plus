@@ -1,6 +1,6 @@
 # go-redis-plus
 
-provide [redis/v8](github.com/go-redis/redis) extend features
+provide [go-redis/redis](github.com/go-redis/redis) extend features
 
 ## Installation
 
@@ -14,6 +14,7 @@ type mapping:
 |-|-|-|
 |get|struct|Hash|
 |get|map[string]string|Hash|
+|get|map[string]interface{}|Hash|
 |get|slice|List|
 |get|array|List|
 |get|other|String|
@@ -28,4 +29,4 @@ type mapping:
 See: [xredis_test.go](./xredis_test.go)
 
 ## Related pojects
-- [redis/v8](github.com/go-redis/redis)
+- [go-redis/redis](github.com/go-redis/redis)
