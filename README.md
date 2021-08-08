@@ -15,13 +15,13 @@ type mapping:
 |get|struct|Hash|
 |get|map[string]string|Hash|
 |get|map[string]interface{}|Hash|
-|get|slice|List|
-|get|array|List|
+|get|slice|List/Set|
+|get|array|List/Set|
 |get|other|String|
 |set|struct|Hash|
 |set|map|Hash|
-|set|slice|List|
-|set|array|List|
+|set|slice|List/Set|
+|set|array|List/Set|
 |set|other|String|
 
 ## Usage
