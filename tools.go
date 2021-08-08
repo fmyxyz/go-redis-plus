@@ -27,8 +27,8 @@ func dotType2Byte(val interface{}) (ok bool, bs []byte) {
 		return ok, stringToBytes("")
 	case time.Time:
 		return true, stringToBytes(val.Format(time.RFC3339Nano))
-	case *time.Time:
-		return true, stringToBytes(val.Format(time.RFC3339Nano))
+	case time.Duration:
+		return true, stringToBytes(val.String())
 	case encoding.BinaryMarshaler:
 		b, _ := val.MarshalBinary()
 		return true, b

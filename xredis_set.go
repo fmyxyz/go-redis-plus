@@ -133,12 +133,15 @@ func (c *Client) setSingleValue(ctx context.Context, key string, valValue reflec
 
 func (c *Client) setListValue(ctx context.Context, key string, valValue reflect.Value, options Options) (err error) {
 	valLen := valValue.Len()
+	if valLen == 0 {
+		return nil
+	}
 	vals := make([]interface{}, valLen)
 	for i := 0; i < valLen; i++ {
 		sliceVal := valValue.Index(i)
 		vals[i] = toByte(sliceVal)
 	}
-	err = c.LPush(ctx, key, vals).Err()
+	err = c.RPush(ctx, key, vals).Err()
 	if err != nil {
 		return err
 	}
@@ -150,6 +153,9 @@ func (c *Client) setListValue(ctx context.Context, key string, valValue reflect.
 
 func (c *Client) setSetValue(ctx context.Context, key string, valValue reflect.Value, options Options) (err error) {
 	valLen := valValue.Len()
+	if valLen == 0 {
+		return nil
+	}
 	vals := make([]interface{}, valLen)
 	for i := 0; i < valLen; i++ {
 		sliceVal := valValue.Index(i)
@@ -173,6 +179,9 @@ func (c *Client) setStructValue(ctx context.Context, key string, valValue reflec
 		key := getStructKey(valType, i, options.Tag)
 		m[key] = toByte(valValue.Field(i))
 	}
+	if len(m) == 0 {
+		return nil
+	}
 	err = c.HSet(ctx, key, m).Err()
 	if err != nil {
 		return err
@@ -190,6 +199,9 @@ func (c *Client) setMapValue(ctx context.Context, key string, valValue reflect.V
 		k := iter.Key()
 		v := iter.Value()
 		m[toString(k)] = toByte(v)
+	}
+	if len(m) == 0 {
+		return nil
 	}
 	err = c.HSet(ctx, key, m).Err()
 	if err != nil {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"reflect"
+	"time"
 )
 
 func (c *Client) GetValue(ctx context.Context, key string, value interface{}, opts ...Option) (err error) {
@@ -19,17 +20,20 @@ func (c *Client) GetValue(ctx context.Context, key string, value interface{}, op
 	valValue = valValue.Elem()
 	switch valValue.Kind() {
 	case reflect.Struct:
+		if _, ok := valValue.Interface().(time.Time); ok {
+			return c.getSingleValue(ctx, key, valValue, options)
+		}
 		return c.getStructValue(ctx, key, valValue, options)
 	case reflect.Array:
 		return c.getArrayValue(ctx, key, valValue, options)
 	case reflect.Slice:
 		return c.getSliceValue(ctx, key, valValue, options)
 	case reflect.Map:
-		val, ok := value.(map[string]string)
-		if ok {
+		switch val := value.(type) {
+		case *map[string]string, *map[string]interface{}:
 			return c.getMapValue(ctx, key, val, options)
 		}
-		return errors.New("value map is not map[string]string")
+		return errors.New("value map is not map[string]string, map[string]interface{}")
 	default:
 		return c.getSingleValue(ctx, key, valValue, options)
 	}
@@ -95,12 +99,12 @@ func (c *Client) GetMapValue(ctx context.Context, key string, value interface{},
 	for _, opt := range opts {
 		opt(&options)
 	}
-
-	val, ok := value.(map[string]string)
-	if ok {
+	switch val := value.(type) {
+	case map[string]string, map[string]interface{}, *map[string]string, *map[string]interface{}:
 		return c.getMapValue(ctx, key, val, options)
+	default:
+		return errors.New("value map is not map[string]string, map[string]interface{}")
 	}
-	return errors.New("value map is not map[string]string")
 }
 
 func (c *Client) getSingleValue(ctx context.Context, key string, valValue reflect.Value, options Options) (err error) {
@@ -112,6 +116,9 @@ func (c *Client) getSingleValue(ctx context.Context, key string, valValue reflec
 }
 
 func (c *Client) getSliceValue(ctx context.Context, key string, valValue reflect.Value, options Options) (err error) {
+	if options.Stop == 0 {
+		options.Stop = int64(valValue.Len() - 1)
+	}
 	strings, err := c.LRange(ctx, key, options.Start, options.Stop).Result()
 	if err != nil {
 		return err
@@ -127,7 +134,7 @@ func (c *Client) getArrayValue(ctx context.Context, key string, valValue reflect
 	if err != nil {
 		return err
 	}
-	return setSlice(strings, valValue)
+	return setArray(strings, valValue)
 }
 
 func (c *Client) getStructValue(ctx context.Context, key string, valValue reflect.Value, options Options) (err error) {
@@ -156,20 +163,64 @@ func (c *Client) getStructValue(ctx context.Context, key string, valValue reflec
 		idx := fieldKeyIdxMap[key]
 		field := valValue.Field(idx)
 		valStr, ok := fieldVals[i].(string)
-		if ok {
-			return setValueByString(field, valStr)
+		if !ok {
+			continue
+		}
+		err := setValueByString(field, valStr)
+		if err != nil {
+			return err
 		}
 	}
 	return nil
 }
 
-func (c *Client) getMapValue(ctx context.Context, key string, val map[string]string, options Options) (err error) {
+func (c *Client) getMapValueSring(ctx context.Context, key string, val map[string]string, options Options) (err error) {
 	stringStringMap, err := c.HGetAll(ctx, key).Result()
 	if err != nil {
 		return err
 	}
 	for k, v := range stringStringMap {
 		val[k] = v
+	}
+	return nil
+}
+
+func (c *Client) getMapValue(ctx context.Context, key string, val interface{}, options Options) (err error) {
+	switch val := val.(type) {
+	case map[string]string:
+		stringStringMap, err := c.HGetAll(ctx, key).Result()
+		if err != nil {
+			return err
+		}
+		for k, v := range stringStringMap {
+			val[k] = v
+		}
+	case map[string]interface{}:
+		stringStringMap, err := c.HGetAll(ctx, key).Result()
+		if err != nil {
+			return err
+		}
+		for k, v := range stringStringMap {
+			val[k] = v
+		}
+	case *map[string]string:
+		stringStringMap, err := c.HGetAll(ctx, key).Result()
+		if err != nil {
+			return err
+		}
+		for k, v := range stringStringMap {
+			(*(val))[k] = v
+		}
+	case *map[string]interface{}:
+		stringStringMap, err := c.HGetAll(ctx, key).Result()
+		if err != nil {
+			return err
+		}
+		for k, v := range stringStringMap {
+			(*(val))[k] = v
+		}
+	default:
+		return errors.New("value map is not map[string]string, map[string]interface{}")
 	}
 	return nil
 }

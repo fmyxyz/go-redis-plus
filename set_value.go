@@ -142,3 +142,15 @@ func setTimeDuration(val string, value reflect.Value) error {
 	value.Set(reflect.ValueOf(d))
 	return nil
 }
+
+func setTimeUnixNano(val string, value reflect.Value) error {
+	timeUnixNano, err := strconv.ParseInt(val, 10, 64)
+	if err != nil {
+		return err
+	}
+	sec := timeUnixNano / 1000000000
+	nsec := timeUnixNano % 1000000000
+	d := time.Unix(sec, nsec)
+	value.Set(reflect.ValueOf(d))
+	return nil
+}
