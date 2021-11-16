@@ -15,11 +15,11 @@ func NewClient(opt *Options) *Client {
 		opt.Expiration = -1
 	}
 	client := redis.NewClient(&opt.Options)
-	return &Client{Client: client, options: *opt}
+	return &Client{Cmdable: client, options: *opt}
 }
 
 type Client struct {
-	*redis.Client
+	redis.Cmdable
 	options Options
 }
 
