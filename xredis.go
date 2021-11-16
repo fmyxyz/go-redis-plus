@@ -6,7 +6,7 @@ import (
 	"github.com/go-redis/redis/v8"
 )
 
-// NewClient returns a client to the Redis Server specified by Options.
+// Deprecated: Use NewRedisClient instead.
 func NewClient(opt *Options) *Client {
 	if opt.Tag == "" {
 		opt.Tag = "json"
@@ -15,6 +15,20 @@ func NewClient(opt *Options) *Client {
 		opt.Expiration = -1
 	}
 	client := redis.NewClient(&opt.Options)
+	return &Client{Cmdable: client, options: *opt}
+}
+
+func NewRedisClient(client redis.Cmdable, opts ...Option) *Client {
+	opt := &Options{}
+	for _, option := range opts {
+		option(opt)
+	}
+	if opt.Tag == "" {
+		opt.Tag = "json"
+	}
+	if opt.Expiration == 0 {
+		opt.Expiration = -1
+	}
 	return &Client{Cmdable: client, options: *opt}
 }
 
