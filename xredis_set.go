@@ -145,8 +145,9 @@ func (c *Client) setListValue(ctx context.Context, key string, valValue reflect.
 	if err != nil {
 		return err
 	}
-	if options.Expiration != -1 {
-		return c.Expire(ctx, key, options.Expiration).Err()
+	err = c.expireKeyTTl(ctx, key, options.Expiration)
+	if err != nil {
+		return err
 	}
 	return nil
 }
@@ -165,8 +166,9 @@ func (c *Client) setSetValue(ctx context.Context, key string, valValue reflect.V
 	if err != nil {
 		return err
 	}
-	if options.Expiration != -1 {
-		return c.Expire(ctx, key, options.Expiration).Err()
+	err = c.expireKeyTTl(ctx, key, options.Expiration)
+	if err != nil {
+		return err
 	}
 	return nil
 }
@@ -186,8 +188,9 @@ func (c *Client) setStructValue(ctx context.Context, key string, valValue reflec
 	if err != nil {
 		return err
 	}
-	if options.Expiration != -1 {
-		return c.Expire(ctx, key, options.Expiration).Err()
+	err = c.expireKeyTTl(ctx, key, options.Expiration)
+	if err != nil {
+		return err
 	}
 	return nil
 }
@@ -207,8 +210,17 @@ func (c *Client) setMapValue(ctx context.Context, key string, valValue reflect.V
 	if err != nil {
 		return err
 	}
-	if options.Expiration != -1 {
-		return c.Expire(ctx, key, options.Expiration).Err()
+	err = c.expireKeyTTl(ctx, key, options.Expiration)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// 设置有效过期时长
+func (c *Client) expireKeyTTl(ctx context.Context, key string, expiration time.Duration) error {
+	if expiration > 0 {
+		return c.Expire(ctx, key, expiration).Err()
 	}
 	return nil
 }
